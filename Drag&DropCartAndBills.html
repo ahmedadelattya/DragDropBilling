@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title></title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                user-select: none;
+            }
+            section {
+                width: 90vw;
+                height: 200px;
+                border: 2px solid black;
+                border-radius: 30px;
+                margin: 20px 50px;
+                display: flex;
+                justify-content: space-evenly;
+                align-items: center;
+                box-shadow: inset 0px 0px 97px 23px #ffbb23;
+            }
+            img {
+                width: 150px;
+                height: 150px;
+                transition: 2s;
+            }
+            img:hover {
+                transform: rotate(360deg);
+            }
+            .bill {
+                width: 90vw;
+                height: auto;
+                min-height: 200px;
+                border: 2px solid green;
+                border-radius: 30px;
+                margin: 20px 50px;
+                padding: 10px;
+                box-shadow: inset 0px 0px 97px 23px #aaff23;
+            }
+            .bill-item,
+            .total {
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+                border: 2px double black;
+                border-radius: 15px;
+                width: 15%;
+                min-height: 100px;
+                padding: 5px;
+            }
+            .bill-item > * {
+                width: 150px;
+                text-align: center;
+            }
+        </style>
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.js"
+            integrity="sha512-+k1pnlgt4F1H8L7t3z95o3/KO+o78INEcXTbnoJQ/F2VqDVhWoaiVml/OEHv9HsVgxUaVW+IbiZPUJQfF/YxZw=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+        ></script>
+        <script>
+            window.addEventListener("load", function () {
+                // register events for elements :
+                // drag start , drag end for images
+                allimages = document.images;
+                for (var i = 0; i < allimages.length; i++) {
+                    allimages[i].addEventListener("dragstart", startdrag);
+                    allimages[i].addEventListener("dragend", enddrag);
+                }
+                // Drop: left, dragover, dragenter, dragleave for both sections
+                const up = document.getElementById("up");
+                const down = document.getElementById("down");
+                [up, down].forEach((section) => {
+                    section.addEventListener("drop", dropped);
+                    section.addEventListener("dragenter", enterdrag);
+                    section.addEventListener("dragover", overdrag);
+                    section.addEventListener("dragleave", leavedrag);
+                });
+            }); //end of load
+
+            let draggedImg = null;
+            function startdrag(e) {
+                draggedImg = e.target;
+            }
+
+            function overdrag(e) {
+                //prevent default to allow drop
+                e.preventDefault();
+            }
+            function dropped(e) {
+                // prevent default action (open as a link for some elements)
+                e.preventDefault();
+                // move dragged element to the selected drop target
+                if (e.target.className === "dropzone") {
+                    // if (e.currentTarget.id === "down") {
+                    // Check if the image already exists in the "down" section
+                    let existingImage = Array.from(
+                        e.currentTarget.children
+                    ).find((img) => img.src === draggedImg.src);
+
+                    if (existingImage) {
+                        // Increment dataStock of the existing image
+                        existingImage.dataset.stock =
+                            parseInt(existingImage.dataset.stock) + 1;
+                    } else {
+                        // Append the image to the "down" section
+                        const newImage = draggedImg.cloneNode();
+                        newImage.dataset.stock = 1;
+                        e.currentTarget.appendChild(newImage);
+                    }
+
+                    // Decrement dataStock of the dragged image in the "up" section
+                    draggedImg.dataset.stock =
+                        parseInt(draggedImg.dataset.stock) - 1;
+
+                    // Remove the image from the "up" section if dataStock reaches zero
+                    if (parseInt(draggedImg.dataset.stock) <= 0) {
+                        draggedImg.parentNode.removeChild(draggedImg);
+                    }
+                    // }
+                    // Update the bill section
+                    updateBill(
+                        draggedImg.src,
+                        draggedImg.dataset.price,
+                        draggedImg.id,
+                        e.currentTarget.id
+                    );
+                }
+
+                // Re-register dragstart and dragend events for the newly added images
+                const newImages = e.currentTarget.querySelectorAll("img");
+                for (let i = 0; i < newImages.length; i++) {
+                    newImages[i].addEventListener("dragstart", startdrag);
+                    newImages[i].addEventListener("dragend", enddrag);
+                }
+            }
+            function enterdrag(e) {
+                e.preventDefault();
+                if (e.currentTarget.id == "up") {
+                    e.currentTarget.style.backgroundColor = "yellow";
+                } else if (e.currentTarget.id == "down") {
+                    e.currentTarget.style.backgroundColor = "red";
+                }
+            }
+            function enddrag(e) {
+                e.preventDefault();
+            }
+            function leavedrag(e) {
+                e.preventDefault();
+            }
+
+            function updateBill(imgSrc, imgPrice, imgId, targetSection) {
+                const billSection = document.getElementById("bill");
+                let billItem = Array.from(billSection.children).find(
+                    (item) => item.dataset.src === imgSrc
+                );
+                totalBill = document.getElementById("total-bill");
+                if (targetSection === "down") {
+                    if (billItem) {
+                        // Update the quantity and total price of the existing bill item
+                        var quantity = parseInt(
+                            billItem.querySelector(".quantity").innerText
+                        );
+                        quantity += 1;
+                        billItem.querySelector(".quantity").innerText =
+                            quantity;
+                        billItem.querySelector(".total-price").innerText =
+                            quantity * imgPrice;
+                    } else {
+                        // Create a new bill item
+                        let newBillItem = document.createElement("div");
+                        newBillItem.className = "bill-item";
+                        newBillItem.dataset.src = imgSrc;
+
+                        newBillItem.innerHTML = `
+                    <span><h2>${imgId} Bill </h2>Quantity: <span class="quantity">1</span></span>
+                    <span>Price: <span class="price">${imgPrice}</span></span>
+                    <span>Total-Price: <span class="total-price">${imgPrice}</span> </span>
+                `;
+                        billSection.appendChild(newBillItem);
+                    }
+                } else if (targetSection == "up") {
+                    if (billItem) {
+                        // Update the quantity and total price of the existing bill item
+                        let quantity = parseInt(
+                            billItem.querySelector(".quantity").innerText
+                        );
+                        quantity -= 1;
+
+                        if (quantity > 0) {
+                            billItem.querySelector(".quantity").innerText =
+                                quantity;
+                            billItem.querySelector(".total-price").innerText =
+                                quantity * imgPrice;
+                        } else {
+                            // Remove the bill item if quantity is zero
+                            billSection.removeChild(billItem);
+                        }
+                    }
+                }
+
+                // Update total quantity and total price
+                updateTotalBill();
+            }
+
+            function updateTotalBill() {
+                const billSection = document.getElementById("bill");
+                const billItems = Array.from(
+                    billSection.getElementsByClassName("bill-item")
+                );
+                let totalQuantity = 0;
+                let totalPrice = 0;
+
+                billItems.forEach((item) => {
+                    const quantity = parseInt(
+                        item.querySelector(".quantity").innerText
+                    );
+                    const price = parseInt(
+                        item.querySelector(".price").innerText
+                    );
+                    totalQuantity += quantity;
+                    totalPrice += quantity * price;
+                });
+
+                // Update the total bill section
+                let totalBill = document.getElementById("total-bill");
+                if (!totalBill) {
+                    totalBill = document.createElement("div");
+                    totalBill.id = "total-bill";
+                    totalBill.className = "total";
+                    billSection.appendChild(totalBill);
+                }
+                totalBill.innerHTML = `
+                <h2>Total Bill</h2>
+                <span>Total Quantity: ${totalQuantity}</span>
+                <span>Total Price: ${totalPrice}</span>
+            `;
+                totalBill.style.backgroundColor = "gold";
+            }
+        </script>
+    </head>
+    <body>
+        <section id="up" class="dropzone">
+            <img src="1.jpg" data-stock="1" data-price="1000" id="item1" />
+            <img src="7.jpg" data-stock="2" data-price="2000" id="item2" />
+            <img src="8.jpg" data-stock="3" data-price="3000" id="item3" />
+            <img src="9.jpg" data-stock="4" data-price="4000" id="item4" />
+        </section>
+        <section id="down" class="dropzone"></section>
+        <section id="bill" class="bill">
+            <!-- Bill items will be added here -->
+        </section>
+    </body>
+</html>
